@@ -71,32 +71,47 @@ fun Application.configureRouting() {
         }
 
         get("/status") {
-            val outputDir = File("/app/output")
-            val files = outputDir.listFiles()?.filter { it.extension == "csv" }?.sortedByDescending { it.lastModified() }
+            try {
+                val outputDir = File("/app/output")
+                if (!outputDir.exists()) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Output directory does not exist")
+                    )
+                    return@get
+                }
 
-            if (files.isNullOrEmpty()) {
-                call.respond(
-                    mapOf(
-                        "status" to "No CSV files found",
-                        "output_directory" to "/app/output",
-                        "message" to "Use /scrape?url=<product_url> to start scraping"
+                val files = outputDir.listFiles()?.filter { it.isFile && it.extension == "csv" }?.sortedByDescending { it.lastModified() }
+
+                if (files.isNullOrEmpty()) {
+                    call.respond(
+                        mapOf(
+                            "status" to "No CSV files found",
+                            "output_directory" to "/app/output",
+                            "message" to "Use /scrape?url=<product_url> to start scraping"
+                        )
                     )
-                )
-            } else {
-                call.respond(
-                    mapOf(
-                        "status" to "OK",
-                        "total_files" to files.size,
-                        "latest_file" to files.first().name,
-                        "latest_size_bytes" to files.first().length(),
-                        "all_files" to files.map {
-                            mapOf(
-                                "name" to it.name,
-                                "size_bytes" to it.length(),
-                                "created_at" to it.lastModified()
-                            )
-                        }
+                } else {
+                    call.respond(
+                        mapOf(
+                            "status" to "OK",
+                            "total_files" to files.size,
+                            "latest_file" to files.first().name,
+                            "latest_size_bytes" to files.first().length(),
+                            "all_files" to files.map {
+                                mapOf(
+                                    "name" to it.name,
+                                    "size_bytes" to it.length(),
+                                    "created_at" to it.lastModified()
+                                )
+                            }
+                        )
                     )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Failed to read status: ${e.message}")
                 )
             }
         }

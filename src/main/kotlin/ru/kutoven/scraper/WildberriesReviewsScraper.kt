@@ -2,6 +2,7 @@ package ru.kutoven.scraper
 
 import java.io.File
 import java.io.FileWriter
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.*
@@ -13,8 +14,8 @@ import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
-import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
+import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.WebDriverWait
 import ru.kutoven.model.Review
 
@@ -42,14 +43,12 @@ class WildberriesReviewsScraper(private val config: Properties = getDefaultConfi
     }
 
     fun initializeDriver() {
-        val chromeDriverPath = System.getenv("CHROMEDRIVER_PATH") ?: config.getProperty("webdriver.chrome.driver", "")
-        if (chromeDriverPath.isNotBlank()) {
-            System.setProperty("webdriver.chrome.driver", chromeDriverPath)
-        }
-
+        val seleniumUrl = System.getenv("SELENIUM_URL") ?: config.getProperty("selenium.url", "http://localhost:4444")
         val options = createChromeOptions()
-        driver = ChromeDriver(options)
-        configureDriver(driver as ChromeDriver)
+
+        println("Connecting to Selenium at: $seleniumUrl")
+        driver = RemoteWebDriver(URL(seleniumUrl), options)
+        println("Connected to remote Selenium successfully")
     }
 
     private fun createChromeOptions(): ChromeOptions {
@@ -81,25 +80,7 @@ class WildberriesReviewsScraper(private val config: Properties = getDefaultConfi
         )
         options.setExperimentalOption("prefs", prefs)
 
-        val chromeBinary = System.getenv("CHROME_BIN") ?: config.getProperty("chrome.binary", "")
-        if (chromeBinary.isNotBlank()) {
-            options.setBinary(chromeBinary)
-        }
-
         return options
-    }
-
-    private fun configureDriver(driver: ChromeDriver) {
-        driver.executeCdpCommand(
-            "Page.addScriptToEvaluateOnNewDocument",
-            mapOf(
-                "source" to """
-                    Object.defineProperty(navigator, 'webdriver', {
-                        get: () => undefined
-                    });
-                """.trimIndent()
-            )
-        )
     }
 
     fun scrapeReviews(url: String): List<Review> {

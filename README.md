@@ -7,9 +7,11 @@ API-сервис для сбора отзывов с Wildberries и экспор
 - REST API для запуска скрапинга по требованию
 - Автоматическое сохранение CSV файлов на компьютере пользователя
 - Запуск в Docker контейнере одной командой
-- Headless Chrome для работы без GUI
+- Поддержка всех архитектур процессоров (ARM64/AMD64) через Selenium Grid
+- Headless Chrome/Chromium для работы без GUI
 - Anti-detection настройки для Selenium
 - Динамическая загрузка всех отзывов через скроллинг
+- Работает на Mac (Intel & Apple Silicon), Windows и Linux
 
 ## Собираемые данные
 
@@ -105,6 +107,31 @@ docker-compose down
 
 CSV файлы в директории `output/` сохраняются на компьютере пользователя.
 
+## Поддержка разных архитектур процессоров
+
+Приложение автоматически работает на всех архитектурах благодаря Selenium Grid:
+
+- **ARM64** (Apple Silicon M1/M2/M3, ARM серверы) - использует `seleniarm/standalone-chromium:latest`
+- **AMD64/x86_64** (Intel/AMD процессоры) - можно использовать `selenium/standalone-chrome:latest`
+
+### Конфигурация для AMD64/Intel процессоров (опционально)
+
+Для Intel/AMD процессоров можно использовать официальный образ Chrome. Создайте файл `.env`:
+
+```bash
+SELENIUM_IMAGE=selenium/standalone-chrome:latest
+```
+
+По умолчанию используется `seleniarm/standalone-chromium`, который работает на всех архитектурах.
+
+### Архитектура приложения
+
+Приложение состоит из двух Docker контейнеров:
+1. **selenium-chrome** - Selenium Grid с headless браузером (порты 4444, 7900)
+2. **wildbeerries_bot** - Ktor API сервер (порт 8080)
+
+Контейнеры общаются между собой через Docker network. CSV файлы сохраняются через volume mounting в директорию `output/` на компьютере пользователя.
+
 ## Запуск без Docker Compose
 
 ```bash
@@ -195,10 +222,11 @@ src/main/kotlin/ru/kutoven/
 
 - **Kotlin** 2.2.21
 - **Ktor** 3.3.1 - HTTP сервер
-- **Selenium** 4.38.0 - Веб-автоматизация
+- **Selenium** 4.38.0 - Веб-автоматизация (RemoteWebDriver)
 - **Apache Commons CSV** 1.11.0 - CSV экспорт
-- **Docker** - Контейнеризация
-- **Chrome/ChromeDriver** - Headless браузер
+- **Docker & Docker Compose** - Контейнеризация
+- **Selenium Grid** - Управление headless браузером
+- **Chrome/Chromium** - Headless браузер (seleniarm для ARM64, selenium для AMD64)
 
 ## Лицензия
 

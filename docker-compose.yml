@@ -1,4 +1,16 @@
 services:
+  chrome:
+    image: ${SELENIUM_IMAGE:-seleniarm/standalone-chromium:latest}
+    container_name: selenium-chrome
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    environment:
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_SESSION_TIMEOUT=300
+    restart: unless-stopped
+
   wildbeerries_bot:
     build:
       context: .
@@ -11,6 +23,9 @@ services:
       - ./output:/app/output
     environment:
       - TZ=Europe/Moscow
+      - SELENIUM_URL=http://chrome:4444
+    depends_on:
+      - chrome
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
       interval: 30s
